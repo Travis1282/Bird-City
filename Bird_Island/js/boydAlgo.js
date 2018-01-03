@@ -10,7 +10,8 @@
 				_acceleration = new THREE.Vector3();
 
 				this.setGoal = function ( target ) {
-					_goal = target;
+
+							_goal = target
 				};
 
 				this.setAvoidWalls = function ( value ) {
@@ -124,12 +125,12 @@
 
 				this.repulse = function ( target ) {
 					var distance = this.position.distanceTo( target );
-					if ( distance < 150 ) {
+
+					if ( distance < 50 ) {
 						var steer = new THREE.Vector3();
 						steer.subVectors( this.position, target );
 						steer.multiplyScalar( 0.5 / distance );
 						_acceleration.add( steer );
-
 					}
 
 				};
@@ -175,6 +176,7 @@
 						if ( Math.random() > 0.6 ) continue;
 						var boid = boids[ i ];
 						var distance = boid.position.distanceTo( this.position );
+
 						if ( distance > 0 && distance <= _neighborhoodRadius ) {
 							posSum.add( boid.position );
 							count++;
@@ -215,3 +217,12 @@
 				}
 
 			}
+
+
+
+
+
+
+
+
+
