@@ -113,6 +113,7 @@
 					if ( this.position.y < - _height ) this.position.y =  _height;
 					if ( this.position.z >  _depth ) this.position.z = - _depth;
 					if ( this.position.z < - _depth ) this.position.z =  _depth;
+					// if ( this.position.y <= 140 ) this.position.y =  _height;
 				};
 	
 				this.avoid = function ( target ) {
@@ -126,7 +127,7 @@
 				this.repulse = function ( target ) {
 					var distance = this.position.distanceTo( target );
 
-					if ( distance < 50 ) {
+					if ( distance < 100 ) {
 						var steer = new THREE.Vector3();
 						steer.subVectors( this.position, target );
 						steer.multiplyScalar( 0.5 / distance );
@@ -176,6 +177,8 @@
 						if ( Math.random() > 0.6 ) continue;
 						var boid = boids[ i ];
 						var distance = boid.position.distanceTo( this.position );
+						// var distance = boid.position.distanceTo( cube.position );
+
 
 						if ( distance > 0 && distance <= _neighborhoodRadius ) {
 							posSum.add( boid.position );

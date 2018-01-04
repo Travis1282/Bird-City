@@ -4,16 +4,21 @@
 /* Add objects             */
 /* Kickoff tick() function */
 
-var container, scene, camera, renderer, floor=[];
+var container, scene, camera, renderer, allBugs=[];
 
 var keyboard = new THREEx.KeyboardState();
 var clock = new THREE.Clock();
 var { scene, camera } = setupScene();
 var movingCube;
 // trackKeystrokes();
-
+var bugs = addBugs();
 var cube = addCube();
+// var tree = addTree();
+
+var score = 0;
+
 var { birds, boids} = addBirds();
+
 tick(); 
 // addGround();
 
@@ -25,7 +30,15 @@ function tick() {
     update();
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
+    moveBugs();
+    countdown();
 } 
+
+function countdown(){
+
+return Math.round(clock.elapsedTime);
+
+}
 
 ////////////// Helper Functions //////////////
 
@@ -62,14 +75,13 @@ function addRenderer() {
 ////////////// DRIVING CUBE //////////////
 
 function addCube() {
-    var movingCubeMat = new THREE.MeshBasicMaterial( { color: 0x0000ff, transparent: true } );
+    var movingCubeMat = new THREE.MeshBasicMaterial( { color: 0x0000ff, transparent: true, opacity: 0} );
     var side = 10;
     var movingCubeGeom = new THREE.BoxGeometry(side,side,side,side,side,side);
     movingCube = new THREE.Mesh( movingCubeGeom, movingCubeMat);
-    movingCube.position.set(200, 800 ,6000);
+    movingCube.position.set(200, 200 ,0);
 
     scene.add(movingCube);
-
     return movingCube;
 }
 
@@ -89,12 +101,11 @@ var tree = new THREE.Tree({
 function addTree(){
   var geometry = THREE.TreeGeometry.build(tree);
   var material = new THREE.MeshBasicMaterial( { color: 0x0000ff } );
-    //combine geometry with material to create the cube
     tree = new THREE.Mesh( geometry, material );
-    scene.add( tree );    //add tree to the scene
-
+    scene.add(tree);    //add tree to the scene
+    return tree
   }
-  addTree();
+  //addTree();
 
 ////////////// ADD TERRAIN  //////////////
 
@@ -104,14 +115,14 @@ terrainScene = THREE.Terrain({
     frequency: 2.5,
     heightmap: THREE.Terrain.Particles,
     material: new THREE.MeshBasicMaterial({color: 0x5566aa}),
-    maxHeight: 2000,
+    maxHeight: 150,
     minHeight: -100,
     steps: 1,
     useBufferGeometry: false,
     xSegments: xS,
-    xSize: (1024*10),
+    xSize: (1024*20),
     ySegments: yS,
-    ySize: (1024*10),
+    ySize: (1024*20),
     scattering: THREE.Terrain.Linear.PerlinAltitude,
     //turbulent: true
 
@@ -133,21 +144,21 @@ decoScene = THREE.Terrain.ScatterMeshes(geo, {
     randomness: Math.random,
 });
 terrainScene.add(decoScene);
-terrainScene.add(tree)
+//terrainScene.add(tree)
 
 //////////////  ADD WATER //////////////
 
-const addWater = function(){
+// const addWater = function(){
 
-  const water = new THREE.Mesh(
-    new THREE.PlaneBufferGeometry(16384+1024, 16384+1024, 16, 16),
-    new THREE.MeshLambertMaterial({color: 0x006ba0})
-  );
-  water.position.y = 0;
-  water.rotation.x = -0.5 * Math.PI;
-  scene.add(water);
-}
-addWater();
+//   const water = new THREE.Mesh(
+//     new THREE.PlaneBufferGeometry(16384+1024, 16384+1024, 16, 16),
+//     new THREE.MeshLambertMaterial({color: 0x006ba0})
+//   );
+//   water.position.y = 0;
+//   water.rotation.x = -0.5 * Math.PI;
+//   scene.add(water);
+// }
+// addWater();
 
 //////////////  ADD LIGHT //////////////
 
@@ -162,25 +173,25 @@ const light = function(){
 }
 light();
 
-//////////////  ADD BIRDS //////////////
+////////////// ADD BIRDS //////////////
 
 function addBirds() {
 	birds = [];
 	boids = [];
 
-	for ( var i = 0; i < 200; i ++ ) {
+	for ( var i = 0; i < 50; i ++ ) {
 
 		boid = boids[ i ] = new Boid();
 		boid.position.x = Math.random() * 400 - 200;
 		boid.position.y = Math.random() * 400 - 200;
-		boid.position.z = Math.random() * -1000 - 200;
+		boid.position.z = Math.random() * 200 - 500;
 		boid.velocity.x = Math.random() * 2 - 1;
 		boid.velocity.y = Math.random() * 2 - 1;
 		boid.velocity.z = Math.random() * 2 - 1;
 		boid.setAvoidWalls( false );
-		boid.setWorldSize( 1000, 1000, 1000 );
+		boid.setWorldSize( 0,0,0 );
 
-		bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color:Math.random() * 0xffffff, side: THREE.DoubleSide } ) );
+		bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color: 0xffffff, side: THREE.DoubleSide } ) );
 		bird.phase = Math.floor( Math.random() * 62.83 );
 		scene.add( bird );
     }
@@ -189,6 +200,7 @@ function addBirds() {
 }
 
 function updateBirds() {
+    // set cube position var
     var pos = cube.position;
     var vector = new THREE.Vector3( pos.x, pos.y, pos.z);
 	for ( var i = 0; i < birds.length; i++ ) {
@@ -207,34 +219,97 @@ function updateBirds() {
 		bird.phase = ( bird.phase + ( Math.max( 0, bird.rotation.z ) + 0.1 )  ) % 62.83;
 		bird.geometry.vertices[ 5 ].y = bird.geometry.vertices[ 4 ].y = Math.sin( bird.phase ) * 5;
 
-        if ( boid.position.distanceTo( cube.position ) <= 250 ) {
-            boid.setGoal( cube.position )
+        // set goal 
+        boid.setGoal( cube.position )
 
-        } 
-        else {
-            boid.setGoal( boid.target)
 
-        };
+        }
 
-    }
 }
 
+// console.log(Math.round(1.005*100)/100) // 1 instead of 1.01
+
+
+// collisionDetector = function(){
+//     for(var i = 0; i <= allBugs.length; i++ )
+
+//         var bug = allBugs[i]; 
+        
+//         if ( boid.position.distanceTo( bug[i] ) < 100 ) {
+
+//             console.log("collision");
+//         }
+//     }
+// }
+
+
+//////////////  ADD BUGS //////////////
+
+
+addBugs();
+
+
+  function moveBugs() { 
+        
+    // loop through each bug
+    for(var i=0; i<allBugs.length; i++) { 
+
+        for(var j=0; j<birds.length; j++){
+            if (allBugs[i].position.distanceTo(birds[j].position)<10){
+                // debugger;
+                    scene.remove(allBugs[i]);
+                            console.log("collision");
+                    score++
+
+            }
+        }
+
+      }
+
+  }
+
+
+    function addBugs(){
+        // The loop will move from z position of -1000 to z position 1000, adding a random particle at each position. 
+        for ( var z= 0; z < 10000; z+=100 ) {
+    
+          // Make a sphere 
+          var geometry   = new THREE.SphereGeometry(0.5, 32, 32)
+          var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
+          var bugs = new THREE.Mesh(geometry, material)
+    
+          bugs.position.x = Math.random() * 1000 - 500;
+          bugs.position.y = Math.random() * 1000 - 500;
+    
+          // Then set the z position to where it is in the loop (distance of camera)
+          bugs.position.z = z;
+    
+          //add the sphere to the scene
+          scene.add( bugs );
+    
+          //finally push it to the bugs array 
+          allBugs.push(bugs); 
+        }
+  }
 
 ////////////// TRACK KEYSTROKES / DRIVE CUBE //////////////
 
 function update()
 {
     var delta = clock.getDelta(); // seconds.
-    var moveDistance = 220 * delta; // 200 pixels per second
+    var moveDistance = 200 * delta; // 200 pixels per second
     var rotateAngle = Math.PI / 3 * delta;   // pi/2 radians (90 degrees) per second
     movingCube.translateZ( -moveDistance );
 
 
     // move forwards/backwards/left/right
     if ( keyboard.pressed("W") )
-        movingCube.rotateOnAxis( new THREE.Vector3(1,0,0), rotateAngle);
-    if ( keyboard.pressed("S") )
-        movingCube.rotateOnAxis( new THREE.Vector3(1,0,0), -rotateAngle);
+        movingCube.translateY( moveDistance );
+        // movingCube.rotateOnAxis( new THREE.Vector3(1,0,0), rotateAngle);
+    if ( keyboard.pressed("S") && movingCube.position.y > 140 )
+        movingCube.translateY( -moveDistance );
+
+        // movingCube.rotateOnAxis( new THREE.Vector3(1,0,0), -rotateAngle);
     if ( keyboard.pressed("Q") )
         movingCube.translateX( -moveDistance );
     if ( keyboard.pressed("E") )
@@ -244,15 +319,20 @@ function update()
     var rotation_matrix = new THREE.Matrix4().identity();
     if ( keyboard.pressed("A") )
         movingCube.rotateOnAxis( new THREE.Vector3(0,1,0), rotateAngle);
+            // movingCube.translateX( -moveDistance );
+
     if ( keyboard.pressed("D") )
         movingCube.rotateOnAxis( new THREE.Vector3(0,1,0), -rotateAngle);
     if ( keyboard.pressed("R") )
+        movingCube.translateZ( -moveDistance );
     if ( keyboard.pressed("F") )
     
     if ( keyboard.pressed("Z") )
-    {   movingCube.position.x = Math.random() * 10 - 20;
-        movingCube.position.y = Math.random() * 10 - 20;
-        movingCube.position.z = Math.random() * 10 - 20;
+    {   
+        console.log('z')
+        // movingCube.position.x = Math.random() * 10 - 20;
+    //     movingCube.position.y = Math.random() * 10 - 20;
+    //     movingCube.position.z = Math.random() * 10 - 20;
         // movingCube.position.set(0,25.1,0);
         // movingCube.rotation.set(0,0,0);
 
@@ -267,8 +347,8 @@ function update()
     camera.position.z = cameraOffset.z;
     camera.lookAt( movingCube.position );
     
-    //camera.updateMatrix();
-    //camera.updateProjectionMatrix();
+    // camera.updateMatrix();
+    // camera.updateProjectionMatrix();
 }
 
 
