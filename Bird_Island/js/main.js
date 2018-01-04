@@ -4,17 +4,16 @@
 /* Add objects             */
 /* Kickoff tick() function */
 
-var container, scene, camera, renderer, allBugs=[];
+var container, scene, camera, renderer, allBugs=[], allBuildings=[], buildingBounds=[], birdBounds=[];
 
 var keyboard = new THREEx.KeyboardState();
 var clock = new THREE.Clock();
 var { scene, camera } = setupScene();
 var movingCube;
-// trackKeystrokes();
+var buildings = addBuildings();
 var bugs = addBugs();
 var cube = addCube();
-// var tree = addTree();
-
+var ground = addGround();
 var score = 0;
 
 var { birds, boids} = addBirds();
@@ -31,6 +30,7 @@ function tick() {
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
     bugsCollision();
+    // buildingsCollision();
     countdown();
 } 
 
@@ -45,7 +45,7 @@ return Math.round(clock.elapsedTime);
 function setupScene() {
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0xffffff );
+    scene.background = new THREE.Color( 0x99b4c3);
     camera = setupCamera(scene.position);
     scene.add(camera);
     scene.fog = new THREE.FogExp2(0x868293, 0.0007);
@@ -85,86 +85,27 @@ function addCube() {
     return movingCube;
 }
 
-////////////// ADD TREES //////////////
+//////////////  ADD GROUND //////////////
+
+function addGround(){
+
+  const ground = new THREE.Mesh(
+    new THREE.PlaneBufferGeometry(16384+1024, 16384+1024, 16, 16),
+    new THREE.MeshLambertMaterial({color: 0x404040})
+  );
+  ground.position.y = 0;
+  ground.rotation.x = -0.5 * Math.PI;
+  scene.add(ground);
+  return ground;
+}
 
 
-var tree = new THREE.Tree({
-    generations : 3,        // # for branch' hierarchy
-    length      : 7.0,      // length of root branch
-    uvLength    : 16.0,     // uv.v ratio against geometry length (recommended is generations * length)
-    radius      : 0.5,      // radius of root branch
-    radiusSegments : 8,     // # of radius segments for each branch geometry
-    heightSegments : 8      // # of height segments for each branch geometry
-});
-
-
-function addTree(){
-  var geometry = THREE.TreeGeometry.build(tree);
-  var material = new THREE.MeshBasicMaterial( { color: 0x0000ff } );
-    tree = new THREE.Mesh( geometry, material );
-    scene.add(tree);    //add tree to the scene
-    return tree
-  }
-  //addTree();
-
-////////////// ADD TERRAIN  //////////////
-
-var xS = 63, yS = 63;
-terrainScene = THREE.Terrain({
-    easing: THREE.Terrain.Linear,
-    frequency: 2.5,
-    heightmap: THREE.Terrain.Particles,
-    material: new THREE.MeshBasicMaterial({color: 0x5566aa}),
-    maxHeight: 50,
-    minHeight: -300,
-    steps: 1,
-    useBufferGeometry: false,
-    xSegments: xS,
-    xSize: (1024*20),
-    ySegments: yS,
-    ySize: (1024*20),
-    scattering: THREE.Terrain.Linear.PerlinAltitude,
-    //turbulent: true
-
-});
-// Assuming you already have your global scene, add the terrain to it
-scene.add(terrainScene);
-
-// Optional:
-// Get the geometry of the terrain across which you want to scatter meshes
-var geo = terrainScene.children[0].geometry;
-// Add randomly distributed foliage
-decoScene = THREE.Terrain.ScatterMeshes(geo, {
-    //mesh: THREE.TreeGeometry.build(tree),
-
-    mesh: new THREE.Mesh(new THREE.BoxGeometry(20, 20, 12, 6)),
-    w: xS,
-    h: yS,
-    spread: 0.5,
-    randomness: Math.random,
-});
-// terrainScene.add(decoScene);
-//terrainScene.add(tree)
-
-//////////////  ADD WATER //////////////
-
-// const addWater = function(){
-
-//   const water = new THREE.Mesh(
-//     new THREE.PlaneBufferGeometry(16384+1024, 16384+1024, 16, 16),
-//     new THREE.MeshLambertMaterial({color: 0x006ba0})
-//   );
-//   water.position.y = 0;
-//   water.rotation.x = -0.5 * Math.PI;
-//   scene.add(water);
-// }
-// addWater();
 
 //////////////  ADD LIGHT //////////////
 
 const light = function(){
 
-  skyLight = new THREE.DirectionalLight(0xe8bdb0, 1.5);
+  skyLight = new THREE.DirectionalLight(0x7ec0ee, 1.5);
   skyLight.position.set(2950, 2625, -160); // Sun on the sky texture
   scene.add(skyLight);
   var light = new THREE.DirectionalLight(0xc3eaff, 0.75);
@@ -227,58 +168,82 @@ function updateBirds() {
 
 }
 
-// console.log(Math.round(1.005*100)/100) // 1 instead of 1.01
 
 
-// collisionDetector = function(){
-//     for(var i = 0; i <= allBugs.length; i++ )
+// addBugs();
+// addBuildings();
 
-//         var bug = allBugs[i]; 
-        
-//         if ( boid.position.distanceTo( bug[i] ) < 100 ) {
-
-//             console.log("collision");
-//         }
-//     }
-// }
-
-
-//////////////  ADD BUGS //////////////
-
-
-addBugs();
+////////////// COLLISION DETECTION //////////////
 
 
 function bugsCollision() { 
-        
+
     // loop through each bug
-    for(var i=0; i<allBugs.length; i++) { 
+    for(var j=0; j<birds.length; j++) { 
         // loop through each bird
-        for(var j=0; j<birds.length; j++){
-                if (allBugs[i].position.distanceTo(birds[j].position)<10){
+        for(var i=0; i<allBugs.length; i++){
+                if (birds[j].position.distanceTo(allBugs[i].position)<10){
                 // debugger;
                     // remove eaten bugs
                     scene.remove(allBugs[i]);
-                            console.log("collision");
-                    score++
+                    allBugs.splice([i],1)
+                    //add to score 
+                    score++;
+                    console.log(score);
+                    return;
             }
         }
+
+        for(var i=0; i<buildingBounds.length; i++){
+
+
+            // console.log(birds[j].position)
+            // console.log(allBuildings[i].minx)
+            // debugger;
+            
+            if ((birds[j].position.x >= buildingBounds[i].min.x && birds[j].position.x <= buildingBounds[i].max.x) &&
+                (birds[j].position.y >= buildingBounds[i].min.y && birds[j].position.y <= buildingBounds[i].max.y) &&
+                (birds[j].position.z >= buildingBounds[i].min.z && birds[j].position.z <= buildingBounds[i].max.z)){
+
+
+                    scene.remove(birds[j]);
+                    console.log('boom')
+                    // debugger;
+            }
+        }
+    }
+}
+
+
+////////////// POPULATES THE BUILDING BOUNDING ARRAY FOR COLLISION DETECTION //////////////
+
+function buildingsBounding() { 
+
+    // loop through each bug
+    for(var i=0; i<allBuildings.length; i++){
+        // loop through each bird
+            // var BBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+    //     BBox.setFromObject(buildings);
+        var  buildingBound = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3())
+        buildingBound.setFromObject(allBuildings[i]);
+        buildingBounds.push(buildingBound)
 
     }
 
 }
 
+buildingsBounding();
+
+//////////////  ADD BUGS //////////////
 
 function addBugs(){
-    // The loop will move from z position of -1000 to z position 1000, adding a random particle at each position. 
-    for ( var i=0; i < 100; i++ ) {
-
+    for ( var i=0; i < 400; i++ ) {
       // Make a sphere 
       var geometry   = new THREE.SphereGeometry(0.5, 32, 32)
       var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
       var bugs = new THREE.Mesh(geometry, material)
-      bugs.position.z = Math.random() * 5000 -2500;
-      bugs.position.x = Math.random() * 5000 -2500;
+      bugs.position.z = (Math.random() * 10000) -11000;
+      bugs.position.x = (Math.random() * 10000) -5000;
       bugs.position.y = Math.random() * 800; -50;
 
       // Then set the z position to where it is in the loop (distance of camera)
@@ -293,6 +258,30 @@ function addBugs(){
 
       //finally push it to the bugs array 
       allBugs.push(bugs); 
+    }
+}
+
+////////////// ADD BUILDINGS //////////////
+
+function addBuildings(){
+    for ( var i=0; i < 300; i++ ) {
+      // Make a box 
+      var geometry   = new THREE.BoxGeometry(50, 50, 50)
+      var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
+      var buildings = new THREE.Mesh(geometry, material)
+      buildings.position.z = (Math.random() * 10000) -11000;
+      buildings.position.x = (Math.random() * 10000) -5000;
+      buildings.position.y = -100;
+
+
+        buildings.scale.z = (Math.random() * 4) + 1; 
+        buildings.scale.x = (Math.random() * 4) + 1;
+        buildings.scale.y = (Math.random() * 25) +10;
+
+      //add the cube to the scene
+      scene.add( buildings );
+      // put into scene
+      allBuildings.push(buildings); 
     }
 }
 
