@@ -27,10 +27,10 @@ tick();
 
 function tick() { 
     updateBirds();
-    update();
+    steer();
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
-    moveBugs();
+    bugsCollision();
     countdown();
 } 
 
@@ -45,10 +45,10 @@ return Math.round(clock.elapsedTime);
 function setupScene() {
 
     scene = new THREE.Scene();
-    // scene.background = new THREE.Color( 0xffffff );
+    scene.background = new THREE.Color( 0xffffff );
     camera = setupCamera(scene.position);
     scene.add(camera);
-
+    scene.fog = new THREE.FogExp2(0x868293, 0.0007);
     addRenderer();
 
     return { scene:scene, camera:camera };
@@ -115,8 +115,8 @@ terrainScene = THREE.Terrain({
     frequency: 2.5,
     heightmap: THREE.Terrain.Particles,
     material: new THREE.MeshBasicMaterial({color: 0x5566aa}),
-    maxHeight: 150,
-    minHeight: -100,
+    maxHeight: 50,
+    minHeight: -300,
     steps: 1,
     useBufferGeometry: false,
     xSegments: xS,
@@ -137,13 +137,13 @@ var geo = terrainScene.children[0].geometry;
 decoScene = THREE.Terrain.ScatterMeshes(geo, {
     //mesh: THREE.TreeGeometry.build(tree),
 
-    mesh: new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 12, 6)),
+    mesh: new THREE.Mesh(new THREE.BoxGeometry(20, 20, 12, 6)),
     w: xS,
     h: yS,
     spread: 0.5,
     randomness: Math.random,
 });
-terrainScene.add(decoScene);
+// terrainScene.add(decoScene);
 //terrainScene.add(tree)
 
 //////////////  ADD WATER //////////////
@@ -249,53 +249,57 @@ function updateBirds() {
 addBugs();
 
 
-  function moveBugs() { 
+function bugsCollision() { 
         
     // loop through each bug
     for(var i=0; i<allBugs.length; i++) { 
-
+        // loop through each bird
         for(var j=0; j<birds.length; j++){
-            if (allBugs[i].position.distanceTo(birds[j].position)<10){
+                if (allBugs[i].position.distanceTo(birds[j].position)<10){
                 // debugger;
+                    // remove eaten bugs
                     scene.remove(allBugs[i]);
                             console.log("collision");
                     score++
-
             }
         }
 
-      }
+    }
 
-  }
+}
 
 
-    function addBugs(){
-        // The loop will move from z position of -1000 to z position 1000, adding a random particle at each position. 
-        for ( var z= 0; z < 10000; z+=100 ) {
-    
-          // Make a sphere 
-          var geometry   = new THREE.SphereGeometry(0.5, 32, 32)
-          var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
-          var bugs = new THREE.Mesh(geometry, material)
-    
-          bugs.position.x = Math.random() * 1000 - 500;
-          bugs.position.y = Math.random() * 1000 - 500;
-    
-          // Then set the z position to where it is in the loop (distance of camera)
-          bugs.position.z = z;
-    
-          //add the sphere to the scene
-          scene.add( bugs );
-    
-          //finally push it to the bugs array 
-          allBugs.push(bugs); 
-        }
-  }
+function addBugs(){
+    // The loop will move from z position of -1000 to z position 1000, adding a random particle at each position. 
+    for ( var i=0; i < 100; i++ ) {
+
+      // Make a sphere 
+      var geometry   = new THREE.SphereGeometry(0.5, 32, 32)
+      var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
+      var bugs = new THREE.Mesh(geometry, material)
+      bugs.position.z = Math.random() * 5000 -2500;
+      bugs.position.x = Math.random() * 5000 -2500;
+      bugs.position.y = Math.random() * 800; -50;
+
+      // Then set the z position to where it is in the loop (distance of camera)
+      // bugs.position.z = z-10000;
+
+        bugs.scale.x = 2;
+        bugs.scale.y = 2;
+
+
+      //add the sphere to the scene
+      scene.add( bugs );
+
+      //finally push it to the bugs array 
+      allBugs.push(bugs); 
+    }
+}
 
 ////////////// TRACK KEYSTROKES / DRIVE CUBE //////////////
 
-function update()
-{
+function steer(){
+
     var delta = clock.getDelta(); // seconds.
     var moveDistance = 200 * delta; // 200 pixels per second
     var rotateAngle = Math.PI / 3 * delta;   // pi/2 radians (90 degrees) per second
