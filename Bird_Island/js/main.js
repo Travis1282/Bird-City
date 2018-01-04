@@ -4,7 +4,7 @@
 /* Add objects             */
 /* Kickoff tick() function */
 
-var container, scene, camera, renderer, allBugs=[], allBuildings=[], buildingBounds=[], birdBounds=[];
+var container, scene, camera, renderer, allBugs=[], allBuildings=[], buildingBounds=[];
 
 var keyboard = new THREEx.KeyboardState();
 var clock = new THREE.Clock();
@@ -15,11 +15,27 @@ var bugs = addBugs();
 var cube = addCube();
 var ground = addGround();
 var score = 0;
+var birdQuantity = 100;
+
 
 var { birds, boids} = addBirds();
 
-tick(); 
-// addGround();
+
+
+
+////////////// SETUP SCOREBOARD //////////////
+
+var scoreBoard = document.getElementById( 'GameContainer' )
+var scoreBoardContainer = document.createElement('div')
+scoreBoard.appendChild(scoreBoardContainer);
+scoreBoardContainer.style.zIndex = 100;
+scoreBoardContainer.style.position = 'absolute';
+scoreBoardContainer.style.top = '0px';
+scoreBoardContainer.style.margin = '20px';
+scoreBoardContainer.style.fontSize = '20px';
+scoreBoardContainer.style.color = '#ffffff';
+scoreBoardContainer.style.top = '0px';
+
 
 ////////////// Render Cycle //////////////
 /* This function gets called on every render frame */
@@ -29,14 +45,21 @@ function tick() {
     steer();
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
-    bugsCollision();
-    // buildingsCollision();
+    // collisionDetection();
+    checkBird()
+    checkBugs()
     countdown();
 } 
 
+
+////////////// COUNTDOWN TIMER AND UPDATE DOM ELEMENT //////////////
+
+
 function countdown(){
 
-return Math.round(clock.elapsedTime);
+timeLeft = 60 - (Math.round(clock.elapsedTime));
+
+scoreBoardContainer.innerText = "Bugs Eaten: " + score + ", Bird Quantity: " + birdQuantity + ", Time Left: " + timeLeft;
 
 }
 
@@ -90,15 +113,17 @@ function addCube() {
 function addGround(){
 
   const ground = new THREE.Mesh(
-    new THREE.PlaneBufferGeometry(16384+1024, 16384+1024, 16, 16),
+    new THREE.PlaneBufferGeometry(50000, 150000, 16, 16),
     new THREE.MeshLambertMaterial({color: 0x404040})
   );
   ground.position.y = 0;
   ground.rotation.x = -0.5 * Math.PI;
+  //ground position move by the buildings 
+
   scene.add(ground);
   return ground;
-}
 
+}
 
 
 //////////////  ADD LIGHT //////////////
@@ -120,7 +145,7 @@ function addBirds() {
 	birds = [];
 	boids = [];
 
-	for ( var i = 0; i < 50; i ++ ) {
+	for ( var i = 0; i < 100; i ++ ) {
 
 		boid = boids[ i ] = new Boid();
 		boid.position.x = Math.random() * 400 - 200;
@@ -131,6 +156,8 @@ function addBirds() {
 		boid.velocity.z = Math.random() * 2 - 1;
 		boid.setAvoidWalls( false );
 		boid.setWorldSize( 0,0,0 );
+
+        // birdQuantity.push('1');
 
 		bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color: 0xffffff, side: THREE.DoubleSide } ) );
 		bird.phase = Math.floor( Math.random() * 62.83 );
@@ -151,9 +178,6 @@ function updateBirds() {
 		bird = birds[i];
         bird.position.copy( boids[i].position );
 
-        var color = bird.material.color;
-		color.r = color.g = color.b = ( 500 - bird.position.z ) / 1000;
-
 		bird.rotation.y = Math.atan2( - boid.velocity.z, boid.velocity.x );
 		bird.rotation.z = Math.asin( boid.velocity.y / boid.velocity.length() );
 
@@ -163,20 +187,59 @@ function updateBirds() {
         // set goal 
         boid.setGoal( cube.position )
 
-
         }
-
 }
 
 
-
-// addBugs();
-// addBuildings();
-
 ////////////// COLLISION DETECTION //////////////
+function checkBugs(){
+     for(var j=0; j<birds.length; j++) { 
+        // loop through each bird
+        for(var i=0; i<allBugs.length; i++){
+                if (birds[j].position.distanceTo(allBugs[i].position)<10){
+                // debugger;
+                    // remove eaten bugs
+                    scene.remove(allBugs[i]);
+                    allBugs.splice([i],1)
+                    //add to score 
+                    score++;
+                    return;
+            }
+        }
+    }
+}
 
 
-function bugsCollision() { 
+function checkBird(){
+  for(var j=0; j<birds.length; j++) { 
+        // loop through each bird
+
+        for(var i=0; i<buildingBounds.length; i++){
+
+            //detects the collision of birds and buildings and then removes collided birds
+            
+            if ((birds[j].position.x >= buildingBounds[i].min.x && birds[j].position.x <= buildingBounds[i].max.x) &&
+                (birds[j].position.y >= buildingBounds[i].min.y && birds[j].position.y <= buildingBounds[i].max.y) &&
+                (birds[j].position.z >= buildingBounds[i].min.z && birds[j].position.z <= buildingBounds[i].max.z)){
+
+
+                    // scene.remove(birds[j]);
+                    birds.splice([j], 1)
+                    console.log(birds[j])
+                    birdQuantity--;
+                    // return birdQuantity
+                    // console.log('boom')
+                    // birdQuatity--;
+                    // debugger;
+                    // return;
+            } 
+        }
+      
+    }
+
+}
+
+function collisionDetection() { 
 
     // loop through each bug
     for(var j=0; j<birds.length; j++) { 
@@ -189,17 +252,13 @@ function bugsCollision() {
                     allBugs.splice([i],1)
                     //add to score 
                     score++;
-                    console.log(score);
                     return;
             }
         }
 
         for(var i=0; i<buildingBounds.length; i++){
 
-
-            // console.log(birds[j].position)
-            // console.log(allBuildings[i].minx)
-            // debugger;
+            //detects the collision of birds and buildings and then removes collided birds
             
             if ((birds[j].position.x >= buildingBounds[i].min.x && birds[j].position.x <= buildingBounds[i].max.x) &&
                 (birds[j].position.y >= buildingBounds[i].min.y && birds[j].position.y <= buildingBounds[i].max.y) &&
@@ -207,10 +266,16 @@ function bugsCollision() {
 
 
                     scene.remove(birds[j]);
-                    console.log('boom')
+
+                    birdQuantity--;
+                    // return birdQuantity
+                    // console.log('boom')
+                    // birdQuatity--;
                     // debugger;
+                    // return;
             }
         }
+        return birdQuantity;
     }
 }
 
@@ -265,23 +330,22 @@ function addBugs(){
 
 function addBuildings(){
     for ( var i=0; i < 300; i++ ) {
-      // Make a box 
-      var geometry   = new THREE.BoxGeometry(50, 50, 50)
-      var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
-      var buildings = new THREE.Mesh(geometry, material)
-      buildings.position.z = (Math.random() * 10000) -11000;
-      buildings.position.x = (Math.random() * 10000) -5000;
-      buildings.position.y = -100;
-
+        // Make a box 
+        var geometry   = new THREE.BoxGeometry(50, 50, 50)
+        var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
+        var buildings = new THREE.Mesh(geometry, material)
+        buildings.position.z = (Math.random() * 10000) -12000;
+        buildings.position.x = (Math.random() * 10000) -5000;
+        buildings.position.y = -100;
 
         buildings.scale.z = (Math.random() * 4) + 1; 
         buildings.scale.x = (Math.random() * 4) + 1;
         buildings.scale.y = (Math.random() * 25) +10;
 
-      //add the cube to the scene
-      scene.add( buildings );
-      // put into scene
-      allBuildings.push(buildings); 
+        //add the cube to the scene
+        scene.add( buildings );
+        // put into scene
+        allBuildings.push(buildings); 
     }
 }
 
@@ -344,8 +408,9 @@ function steer(){
     // camera.updateProjectionMatrix();
 }
 
+//////////////// RUN ANNIMATION ////////////////
 
-
+tick(); 
 
 
 
