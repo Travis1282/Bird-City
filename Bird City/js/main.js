@@ -13,7 +13,7 @@ var movingCube;
 var buildings = addBuildings();
 var bugs = addBugs();
 var cube = addCube();
-var ground = addGround();
+addGround();
 var score = 0;
 var birdQuantity = 100;
 addBirds();
@@ -61,7 +61,7 @@ function tick() {
 
 function countdown(){
 
-timeLeft = 60 - (Math.round(clock.elapsedTime));
+timeLeft = 120 - (Math.round(clock.elapsedTime));
 
 if (timeLeft <= 0 || birdQuantity <= 0){
     scoreBoardContainer.innerText = "Game Over \n Your Score: " + score;
@@ -75,7 +75,7 @@ if (timeLeft <= 0 || birdQuantity <= 0){
 
     }else{
         scoreBoardContainer.innerText = "Bugs Eaten: " + score + ", Bird Quantity: " + birdQuantity + ", Time Left: " + timeLeft;
-        movingCube.translateZ(-(clock.getDelta()*700));
+        movingCube.translateZ(-(clock.getDelta()*800));
 
     }
 }
@@ -85,13 +85,14 @@ if (timeLeft <= 0 || birdQuantity <= 0){
 function init() {
 
     scene = new THREE.Scene();
-    // scene.background = new THREE.Color( 0x99b4c3);
+    scene.background = new THREE.Color( 0x53B3CB);
     camera = setupCamera(scene.position);
     scene.add(camera);
-    scene.fog = new THREE.FogExp2(0xBEBEBE, 0.0007);
+    scene.fog = new THREE.FogExp2(0x53B3CB, 0.0005);
     addRenderer();
     return { scene:scene, camera:camera };
-    initSky()
+    // initSky()
+    // light();
 
 }
 
@@ -173,17 +174,16 @@ function addCube() {
 
 function addGround(){
 
-  const ground = new THREE.Mesh(
-    new THREE.PlaneBufferGeometry(50000, 150000, 16, 16),
-    new THREE.MeshLambertMaterial({color: 0x404040})
-  );
+    var groundColor= new THREE.MeshBasicMaterial( {color: 0x3D465A} );
+    // var groundColor = new THREE.MeshLambertMaterial({color: 0x0000ff});
+    var groundPlane = new THREE.PlaneBufferGeometry(50000, 150000, 16, 16);
+    var ground = new THREE.Mesh(groundPlane, groundColor);
+
   ground.position.y = 0;
   ground.rotation.x = -0.5 * Math.PI;
-  //ground position move by the buildings 
 
   scene.add(ground);
   return ground;
-
 }
 
 
@@ -198,31 +198,31 @@ function addGround(){
 //   light.position.set(-1, -0.5, -1);
 //   scene.add(light);
 // }
-// light();
+
 
 ////////////// ADD BIRDS //////////////
 
 function addBirds() {
-	birds = [];
-	boids = [];
+    birds = [];
+    boids = [];
 
-	for ( var i = 0; i < 100; i ++ ) {
+    for ( var i = 0; i < 100; i ++ ) {
 
-		boid = boids[ i ] = new Boid();
-		boid.position.x = Math.random() * 400 - 200;
-		boid.position.y = Math.random() * 400 - 200;
-		boid.position.z = Math.random() * 200 - 500;
-		boid.velocity.x = Math.random() * 2 - 1;
-		boid.velocity.y = Math.random() * 2 - 1;
-		boid.velocity.z = Math.random() * 2 - 1;
-		boid.setAvoidWalls( false );
-		boid.setWorldSize( 0,0,0 );
+        boid = boids[ i ] = new Boid();
+        boid.position.x = Math.random() * 400 - 200;
+        boid.position.y = Math.random() * 400 - 200;
+        boid.position.z = Math.random() * 200 - 500;
+        boid.velocity.x = Math.random() * 2 - 1;
+        boid.velocity.y = Math.random() * 2 - 1;
+        boid.velocity.z = Math.random() * 2 - 1;
+        boid.setAvoidWalls( false );
+        boid.setWorldSize( 0,0,0 );
 
         // birdQuantity.push('1');
 
-		bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color: 0xffffff, side: THREE.DoubleSide } ) );
-		bird.phase = Math.floor( Math.random() * 62.83 );
-		scene.add( bird );
+        bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color: 0xF15946, side: THREE.DoubleSide } ) );
+        bird.phase = Math.floor( Math.random() * 62.83 );
+        scene.add( bird );
     }
     
     return { birds:birds, boids:boids };
@@ -232,18 +232,18 @@ function updateBirds() {
     // set cube position var
     var pos = cube.position;
     var vector = new THREE.Vector3( pos.x, pos.y, pos.z);
-	for ( var i = 0; i < birds.length; i++ ) {
+    for ( var i = 0; i < birds.length; i++ ) {
         boid = boids[i];
         boid.run( boids );
 
-		bird = birds[i];
+        bird = birds[i];
         bird.position.copy( boids[i].position );
 
-		bird.rotation.y = Math.atan2( - boid.velocity.z, boid.velocity.x );
-		bird.rotation.z = Math.asin( boid.velocity.y / boid.velocity.length() );
+        bird.rotation.y = Math.atan2( - boid.velocity.z, boid.velocity.x );
+        bird.rotation.z = Math.asin( boid.velocity.y / boid.velocity.length() );
 
-		bird.phase = ( bird.phase + ( Math.max( 0, bird.rotation.z ) + 0.1 )  ) % 62.83;
-		bird.geometry.vertices[ 5 ].y = bird.geometry.vertices[ 4 ].y = Math.sin( bird.phase ) * 5;
+        bird.phase = ( bird.phase + ( Math.max( 0, bird.rotation.z ) + 0.1 )  ) % 62.83;
+        bird.geometry.vertices[ 5 ].y = bird.geometry.vertices[ 4 ].y = Math.sin( bird.phase ) * 5;
 
         // set goal 
         boid.setGoal( cube.position )
@@ -362,15 +362,14 @@ function addBugs(){
     for ( var i=0; i < 200; i++ ) {
       // Make a sphere 
       var geometry   = new THREE.SphereGeometry(0.5, 32, 32)
-      var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
+      var material = new THREE.MeshBasicMaterial( {color: 0xE01A4F} );
       var bugs = new THREE.Mesh(geometry, material)
       bugs.position.z = (Math.random() * -4000)-3000;
       bugs.position.x = (Math.random() * -4000)+2000;
-      bugs.position.y = (Math.random() * 800);
+      bugs.position.y = (Math.random() * 800)+ 50;
 
         bugs.scale.x = 3;
         bugs.scale.y = 3;
-
 
       //add the sphere to the scene
       scene.add( bugs );
@@ -386,7 +385,7 @@ function addBuildings(){
     for ( var i=0; i < 300; i++ ) {
         // Make a box 
         var geometry   = new THREE.BoxGeometry(50, 50, 50)
-        var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
+        var material = new THREE.MeshBasicMaterial( {color: 0xF9C22E} );
         var buildings = new THREE.Mesh(geometry, material)
         buildings.position.z = (Math.random() * 10000) -12000;
         buildings.position.x = (Math.random() * 10000) -5000;
