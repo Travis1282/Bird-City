@@ -4,11 +4,11 @@
 /* Add objects             */
 /* Kickoff tick() function */
 
-var container, scene, camera, renderer, allBugs=[], allBuildings=[], buildingBounds=[];
+var container, scene, camera, renderer, sky, sunSphere, allBugs=[], allBuildings=[], buildingBounds=[];
 
 var keyboard = new THREEx.KeyboardState();
 var clock = new THREE.Clock();
-var { scene, camera } = setupScene();
+init();
 var movingCube;
 var buildings = addBuildings();
 var bugs = addBugs();
@@ -16,9 +16,7 @@ var cube = addCube();
 var ground = addGround();
 var score = 0;
 var birdQuantity = 100;
-
-
-var { birds, boids} = addBirds();
+addBirds();
 
 
 
@@ -31,10 +29,15 @@ scoreBoard.appendChild(scoreBoardContainer);
 scoreBoardContainer.style.zIndex = 100;
 scoreBoardContainer.style.position = 'absolute';
 scoreBoardContainer.style.top = '0px';
+scoreBoardContainer.style.width = '100%';
 scoreBoardContainer.style.margin = '20px';
+scoreBoardContainer.style.textAlign = 'center';
 scoreBoardContainer.style.fontSize = '20px';
 scoreBoardContainer.style.color = '#ffffff';
 scoreBoardContainer.style.top = '0px';
+scoreBoardContainer.style.fontFamily ='Montserrat';
+scoreBoardContainer.style.fontWeight ='400';
+
 
 
 ////////////// Render Cycle //////////////
@@ -49,6 +52,7 @@ function tick() {
     checkBird()
     checkBugs()
     countdown();
+
 } 
 
 
@@ -59,41 +63,98 @@ function countdown(){
 
 timeLeft = 60 - (Math.round(clock.elapsedTime));
 
-scoreBoardContainer.innerText = "Bugs Eaten: " + score + ", Bird Quantity: " + birdQuantity + ", Time Left: " + timeLeft;
+if (timeLeft <= 0 || birdQuantity <= 0){
+    scoreBoardContainer.innerText = "Game Over \n Your Score: " + score;
+    scoreBoardContainer.style.fontWeight ='700';
+    scoreBoardContainer.style.lineHeight ='1.5';
+    scoreBoardContainer.style.height ='50%';
+    scoreBoardContainer.style.fontSize = '50px';
+    movingCube.translateZ();
+    movingCube.rotateOnAxis( new THREE.Vector3(0,1,0), (Math.PI / 2 * clock.getDelta()));
 
+
+    }else{
+        scoreBoardContainer.innerText = "Bugs Eaten: " + score + ", Bird Quantity: " + birdQuantity + ", Time Left: " + timeLeft;
+        movingCube.translateZ(-(clock.getDelta()*700));
+
+    }
 }
 
 ////////////// Helper Functions //////////////
 
-function setupScene() {
+function init() {
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0x99b4c3);
+    // scene.background = new THREE.Color( 0x99b4c3);
     camera = setupCamera(scene.position);
     scene.add(camera);
-    scene.fog = new THREE.FogExp2(0x868293, 0.0007);
+    scene.fog = new THREE.FogExp2(0xBEBEBE, 0.0007);
     addRenderer();
-
     return { scene:scene, camera:camera };
+    initSky()
+
 }
 
 function setupCamera(position) {
     var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
     var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
     camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
-    camera.position.set(-200,0,0);// initial camera positon?
+    camera.position.set(0,0,0);// initial camera positon?
     camera.lookAt(position);  
 
     return camera;
 }
 
 function addRenderer() {
-    renderer = new THREE.WebGLRenderer();   
+    renderer = new THREE.WebGLRenderer(); 
+
     renderer.setSize(window.innerWidth, window.innerHeight);    
 
     containerDiv = document.getElementById('GameContainer');   
     containerDiv.appendChild(renderer.domElement);
 }
+
+////////////// SKY SHADER //////////////
+
+
+// function initSky() {
+
+//     // Add Sky
+//     sky = new THREE.Sky();
+//     sky.scale.setScalar( 450000 );
+//     scene.add( sky );
+
+//     // Add Sun Helper
+//     sunSphere = new THREE.Mesh(
+//         new THREE.SphereBufferGeometry( 20000, 16, 8 ),
+//         new THREE.MeshBasicMaterial( { color: 0xffffff } )
+//     );
+//     sunSphere.position.y = - 700000;
+//     sunSphere.visible = false;
+//     scene.add( sunSphere );
+
+//     /// GUI
+
+//     var uniforms = sky.material.uniforms;
+//     uniforms.turbidity.value = 10;
+//     uniforms.rayleigh.value = 2;
+//     uniforms.luminance.value = 1;
+//     uniforms.mieCoefficient.value = 0.005;
+//     uniforms.mieDirectionalG.value = 0.8;
+
+//     var theta = Math.PI * ( 0.49 - 0.5 );
+//     var phi = 2 * Math.PI * ( 0.25 - 0.5 );
+
+//     sunSphere.position.x = 400000 * Math.cos( phi );
+//     sunSphere.position.y = 400000 * Math.sin( phi ) * Math.sin( theta );
+//     sunSphere.position.z = 400000 * Math.sin( phi ) * Math.cos( theta );
+
+//     sunSphere.visible = ! true;
+
+//     uniforms.sunPosition.value.copy( sunSphere.position );
+
+
+// };
 
 ////////////// DRIVING CUBE //////////////
 
@@ -128,16 +189,16 @@ function addGround(){
 
 //////////////  ADD LIGHT //////////////
 
-const light = function(){
+// const light = function(){
 
-  skyLight = new THREE.DirectionalLight(0x7ec0ee, 1.5);
-  skyLight.position.set(2950, 2625, -160); // Sun on the sky texture
-  scene.add(skyLight);
-  var light = new THREE.DirectionalLight(0xc3eaff, 0.75);
-  light.position.set(-1, -0.5, -1);
-  scene.add(light);
-}
-light();
+//   skyLight = new THREE.DirectionalLight(0x7ec0ee, 1.5);
+//   skyLight.position.set(2950, 2625, -160); // Sun on the sky texture
+//   scene.add(skyLight);
+//   var light = new THREE.DirectionalLight(0xc3eaff, 0.75);
+//   light.position.set(-1, -0.5, -1);
+//   scene.add(light);
+// }
+// light();
 
 ////////////// ADD BIRDS //////////////
 
@@ -227,11 +288,7 @@ function checkBird(){
                     birds.splice([j], 1)
                     console.log(birds[j])
                     birdQuantity--;
-                    // return birdQuantity
-                    // console.log('boom')
-                    // birdQuatity--;
-                    // debugger;
-                    // return;
+            
             } 
         }
       
@@ -302,20 +359,17 @@ buildingsBounding();
 //////////////  ADD BUGS //////////////
 
 function addBugs(){
-    for ( var i=0; i < 400; i++ ) {
+    for ( var i=0; i < 200; i++ ) {
       // Make a sphere 
       var geometry   = new THREE.SphereGeometry(0.5, 32, 32)
       var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
       var bugs = new THREE.Mesh(geometry, material)
-      bugs.position.z = (Math.random() * 10000) -11000;
-      bugs.position.x = (Math.random() * 10000) -5000;
-      bugs.position.y = Math.random() * 800; -50;
+      bugs.position.z = (Math.random() * -4000)-3000;
+      bugs.position.x = (Math.random() * -4000)+2000;
+      bugs.position.y = (Math.random() * 800);
 
-      // Then set the z position to where it is in the loop (distance of camera)
-      // bugs.position.z = z-10000;
-
-        bugs.scale.x = 2;
-        bugs.scale.y = 2;
+        bugs.scale.x = 3;
+        bugs.scale.y = 3;
 
 
       //add the sphere to the scene
@@ -356,7 +410,6 @@ function steer(){
     var delta = clock.getDelta(); // seconds.
     var moveDistance = 200 * delta; // 200 pixels per second
     var rotateAngle = Math.PI / 3 * delta;   // pi/2 radians (90 degrees) per second
-    movingCube.translateZ( -moveDistance );
 
 
     // move forwards/backwards/left/right
