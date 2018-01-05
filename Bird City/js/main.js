@@ -33,7 +33,7 @@ scoreBoardContainer.style.width = '100%';
 scoreBoardContainer.style.margin = '20px';
 scoreBoardContainer.style.textAlign = 'center';
 scoreBoardContainer.style.fontSize = '20px';
-scoreBoardContainer.style.color = '#ffffff';
+scoreBoardContainer.style.color = '#F15946';
 scoreBoardContainer.style.top = '0px';
 scoreBoardContainer.style.fontFamily ='Montserrat';
 scoreBoardContainer.style.fontWeight ='400';
@@ -220,7 +220,7 @@ function addBirds() {
 
         // birdQuantity.push('1');
 
-        bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color: 0xF15946, side: THREE.DoubleSide } ) );
+        bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color: 0xffffff, side: THREE.DoubleSide } ) );
         bird.phase = Math.floor( Math.random() * 62.83 );
         scene.add( bird );
     }
