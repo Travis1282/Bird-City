@@ -211,7 +211,7 @@ function addBirds() {
         boid = boids[ i ] = new Boid();
         boid.position.x = Math.random() * 400 - 200;
         boid.position.y = Math.random() * 400 - 200;
-        boid.position.z = Math.random() * 200 - 500;
+        boid.position.z = Math.random() * - 1000;
         boid.velocity.x = Math.random() * 2 - 1;
         boid.velocity.y = Math.random() * 2 - 1;
         boid.velocity.z = Math.random() * 2 - 1;
